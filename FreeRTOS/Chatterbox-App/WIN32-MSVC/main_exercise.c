@@ -55,20 +55,34 @@
 
 /* TODO: Priorities at which the tasks are created.
  */
-
+#define TASK1_PRIORITY 1 
+#define TASK2_PRIORITY 1
+#define TASK3_PRIORITY 2   //Highest priority
 
 /* TODO: output frequencey
  */
+#define mainTASK_CHATTERBOX_OUTPUT_FREQUENCY_MS 1000
+
+/*Task3 Handle
+*/
+TaskHandle_t xHandle = NULL;
+
 
 /*-----------------------------------------------------------*/
 
 /*
   * TODO: data structure
   */
+struct taskData {
+	char stringToPrint[10];
+	uint8_t integerFlag;
+}parametersToTask[3];
+
 
 /*
  * TODO: C function (prototype) for task
  */
+static void chatterBoxTask(void *pvParameters);
 
  
 
@@ -80,14 +94,25 @@ void main_exercise( void )
 /*
  * TODO: initialize data structures
  */
+	strcpy(parametersToTask[0].stringToPrint,"Task1");
+	strcpy(parametersToTask[1].stringToPrint, "Task2");
+	strcpy(parametersToTask[2].stringToPrint, "Task3");
+
+	parametersToTask[0].integerFlag = 0;    //Infinite task instance execution
+	parametersToTask[1].integerFlag = 0;    //Infinite task instance execution
+	parametersToTask[2].integerFlag = 1;    //Task instance execution 5 times
 
 	/* 
 	 * TODO: Create the task instances.
      */
-
+	xTaskCreate(chatterBoxTask, "chatterbox", 500, &parametersToTask[0], TASK1_PRIORITY, NULL);
+	xTaskCreate(chatterBoxTask, "chatterbox", 500, &parametersToTask[1], TASK2_PRIORITY, NULL);
+	xTaskCreate(chatterBoxTask, "chatterbox", 500, &parametersToTask[2], TASK3_PRIORITY, &xHandle);
+	
 	 /*
 	  * TODO: Start the task instances.
 	  */
+	vTaskStartScheduler();
 
 	/* If all is well, the scheduler will now be running, and the following
 	line will never be reached.  If the following line does execute, then
@@ -101,3 +126,41 @@ void main_exercise( void )
 /* 
  * TODO: C function for tasks
  */
+
+static void chatterBoxTask(void *pvParameters)
+{
+	struct taskData* temp = (struct taskData*) pvParameters;
+	int count = 0;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = mainTASK_CHATTERBOX_OUTPUT_FREQUENCY_MS;
+
+	// Initialise the xLastWakeTime variable with the current time.
+	xLastWakeTime = xTaskGetTickCount();
+
+	for (;;)
+	{
+		if (0 == temp->integerFlag)
+		{
+			printf("%s\n", temp->stringToPrint);
+		}
+		else if (1 == temp->integerFlag)
+		{
+			if (5 > count) {
+				printf("%s\n", temp->stringToPrint);
+				count++;
+			}
+			if (5 == count)
+			{
+				printf("Task 3 is terminated\n");
+
+				// Use the handle to delete the task.
+				if (xHandle != NULL)
+				{
+					vTaskDelete(xHandle);
+				}
+			}
+		}
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);
+
+	}
+}
